@@ -5,12 +5,13 @@
 //  Created by EIJI OGA on 12/9/19.
 //  Copyright © 2019 Eiji Oga. All rights reserved.
 //
-#define DEBUG_PRINT
+//#udefine DEBUG_PRINT
 
 struct aslot
 {
     int fixed;
-    int try;
+    int try1;
+    int try2;
     int numList[9];
 };
 
@@ -50,7 +51,8 @@ void initSudokuForm2(struct aslot f[9][9])
         for (j=0; j<9; j++)
         {
             f[i][j].fixed = 0;
-            f[i][j].try = 0;
+            f[i][j].try1 = 0;
+            f[i][j].try2 = 0;
             for(k=0; k<9; k++) f[i][j].numList[k] = k+1;
         }
     }
@@ -73,6 +75,7 @@ void printSufokuForm2(struct aslot f[9][9])
     
 }
 
+#if 0
 void printSufokuForm2try(struct aslot f[9][9])
 {
     int i, j;
@@ -89,6 +92,7 @@ void printSufokuForm2try(struct aslot f[9][9])
     }
     
 }
+#endif
 
 //
 // check at horizontal line then fix the number when candidate is only one.
@@ -129,7 +133,11 @@ int CheckHorizontal(int row, int column, struct aslot f[9][9])
     printf("\n");
 #endif
     if(cnt > 1) f[row][column].fixed = 0;
-    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
+    if(f[row][column].fixed == 0 && cnt == 0)
+    {
+        printf("=== ERROR ===");
+        return (-1);
+    }
     return(f[row][i].fixed);
 }
 
@@ -138,7 +146,6 @@ int CheckHorizontal(int row, int column, struct aslot f[9][9])
 //
 int CheckVertical(int row, int column, struct aslot f[9][9])
 {
-    int result = 0; // this number is fixed.
     int i;
     int cnt=0;
 
@@ -175,7 +182,12 @@ int CheckVertical(int row, int column, struct aslot f[9][9])
 #endif
     if(cnt > 1) f[row][column].fixed = 0;
     
-    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
+    if(f[row][column].fixed == 0 && cnt == 0)
+    {
+        printf("=== ERROR ===");
+        return (-1);
+    }
+
     return(f[row][i].fixed);
 }
 
@@ -243,7 +255,12 @@ int CheckBlock(int row, int column, struct aslot f[9][9])
 #endif
     if(cnt > 1) f[row][column].fixed = 0;
     
-    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
+    if(f[row][column].fixed == 0 && cnt == 0)
+    {
+        printf("=== ERROR ===");
+        return (-1);
+    }
+
     return(f[row][i].fixed);
 }
 
@@ -257,11 +274,11 @@ int checkWholeTable(struct aslot f[9][9])
         for(j=0; j<9; j++)
         {
             result = CheckHorizontal(i, j, f);
-            if (result < 0) return (-1);
+            if (result == -1) return (-1);
             result = CheckVertical(i,j, f);
-            if (result < 0) return (-1);
+            if (result == -1) return (-1);
             result = CheckBlock(i,j, f);
-            if (result < 0) return (-1);
+            if (result == -1) return (-1);
         }
     }
     return(1);
@@ -274,7 +291,7 @@ int numOfList(int row, int column, struct aslot f[9][9])
 {
     int i;
     int cnt = 0;
-    int try = 0;
+    int try[2];
     
     if(f[row][column].fixed != 0) return (0);
     
@@ -284,14 +301,15 @@ int numOfList(int row, int column, struct aslot f[9][9])
         {
             cnt++;
             // if(try == 0) try = f[row][column].numList[i];
-            try = f[row][column].numList[i];
+            if(cnt==1) try[0] = f[row][column].numList[i];
+            if(cnt==2) try[1] = f[row][column].numList[i];
         }
     }
     
-    f[row][column].try = 0;
     if(cnt == 2)
     {
-        f[row][column].try = try;
+        f[row][column].try1 = try[0];
+        f[row][column].try2 = try[1];
     }
     return(cnt);
 }
@@ -329,6 +347,7 @@ int IsComplete(struct aslot f[9][9])
 
 int main(int argc, const char * argv[]) {
     struct aslot form[9][9];
+    int result;
     
     // insert code here...
     printf("Hello, World!\n");
@@ -346,7 +365,7 @@ int main(int argc, const char * argv[]) {
     
     form[1][0].fixed = 8;
     form[1][4].fixed = 9;
-    form[1][6].fixed = 7;
+    form[1][7].fixed = 7;
     
     form[2][0].fixed = 6;
     form[2][3].fixed = 8;
@@ -377,41 +396,77 @@ int main(int argc, const char * argv[]) {
     form[8][7].fixed = 8;
     
     // TRY
-    //form[0][2].fixed = 1;
-    //form[0][4].fixed = 4;
-    //form[0][0].fixed = 9;
-    //form[1][1].fixed = 4;
-    //form[1][3].fixed = 1;
+    form[0][2].fixed = 9; //19
+    form[0][0].fixed = 5; //45
+    form[0][3].fixed = 1; //14
+    //form[1][6].fixed = 6; //56
+    //form[1][8].fixed = 5; //35
+    //form[2][6].fixed = 4; //9, 4
+    //form[3][0].fixed = 5;  //57
+    //form[3][3].fixed = 7;
     
-    printf("checkWholeTable = %d\n", checkWholeTable(form));
-    printSufokuForm2(form);
-    printNumOfList(form);
-    printf("Is complete %d\n", IsComplete(form));
+    int lastNum = 0;
+    int openSlot = -1;
+    
+    result = 0;
+    while(result != -1)
+    {
+        result = checkWholeTable(form);
+        printf("checkWholeTable = %d\n", result);
+        printSufokuForm2(form);
+        printNumOfList(form);
+        openSlot = IsComplete(form);
+        printf("Is complete %d\n", openSlot);
+        if (openSlot == lastNum) break;
+        else lastNum = openSlot;
+    }
+    
     
 #if 0
     int i, j, loop, cnt;
 
-    for (loop = 0; loop < 20; loop++)
+    loop = 0;
+    printf("---- LOOP %d ----\n", loop++);
+    for(i=0; i<9; i++)
     {
-        printf("---- LOOP %d ----\n", loop);
-        for(i=0; i<9; i++)
+        for(j=0; j<9; j++)
         {
-            for(j=0; j<9; j++)
+            cnt = numOfList(i,j,form);
+            if (cnt == 2)
             {
-                cnt = numOfList(i,j,form);
-                printf("%d ", cnt);
-                if(cnt != 0 && form[i][j].try != 0) {
-                    form[i][j].fixed = form[i][j].try;
-                    checkWholeTable(form);
+                printf("======== Count 2 challenge %d,%d\n", i, j);
+                //first trial
+                printf("============ first try %d\n",form[i][j].try1 );
+                form[i][j].fixed = form[i][j].try1;
+                result = checkWholeTable(form);
+                if (result != -1)
+                {
+                    printf("first challege success\n");
                     printSufokuForm2(form);
                     printNumOfList(form);
-                    break;
+                    printf("Is complete %d\n", IsComplete(form));
+                    continue;
                 }
+                // second trial
+                printf("============ second try %d\n",form[i][j].try2 );
+                form[i][j].fixed = form[i][j].try2;
+                result = checkWholeTable(form);
+                if (result != -1)
+                {
+                    printf("second challege success\n");
+                    printSufokuForm2(form);
+                    printNumOfList(form);
+                    printf("Is complete %d\n", IsComplete(form));
+                    continue;
+                }
+                
+                printf("second trail FAILD\n");
+                form[i][j].fixed = 0;
             }
-            printf("\n");
         }
-        //printSufokuForm2try(form);
+        printf("\n");
     }
+    //printSufokuForm2try(form);
 #endif
     
 
