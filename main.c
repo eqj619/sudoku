@@ -95,13 +95,12 @@ void printSufokuForm2try(struct aslot f[9][9])
 //
 int CheckHorizontal(int row, int column, struct aslot f[9][9])
 {
-    int result = 0; // this number is fixed.
     int i;
     int cnt=0;
     
-    if(f[row][column].fixed != 0 ) return(f[row][i].fixed);
+    if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
 #ifdef DEBUG_PRINT
-     printf("%s\ %d-%d\t", __FUNCTION__, row, column);
+     printf("%s %d-%d\t", __FUNCTION__, row, column);
 #endif
     
     // check num in a line
@@ -125,12 +124,12 @@ int CheckHorizontal(int row, int column, struct aslot f[9][9])
 #ifdef DEBUG_PRINT
         printf("%d", f[row][column].numList[i]);
 #endif
-        if(cnt > 1 ) f[row][column].fixed = 0;
     }
 #ifdef DEBUG_PRINT
     printf("\n");
 #endif
-    
+    if(cnt > 1) f[row][column].fixed = 0;
+    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
     return(f[row][i].fixed);
 }
 
@@ -143,9 +142,9 @@ int CheckVertical(int row, int column, struct aslot f[9][9])
     int i;
     int cnt=0;
 
-    if(f[row][column].fixed != 0 ) return(f[row][i].fixed);
+    if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
 #ifdef DEBUG_PRINT
-     printf("%s\ %d-%d\t", __FUNCTION__, row, column);
+     printf("%s %d-%d\t", __FUNCTION__, row, column);
 #endif
      
     
@@ -170,12 +169,13 @@ int CheckVertical(int row, int column, struct aslot f[9][9])
 #ifdef DEBUG_PRINT
         printf("%d", f[row][column].numList[i]);
 #endif
-        if(cnt > 1 ) f[row][column].fixed = 0;
     }
 #ifdef DEBUG_PRINT
     printf("\n");
 #endif
+    if(cnt > 1) f[row][column].fixed = 0;
     
+    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
     return(f[row][i].fixed);
 }
 
@@ -201,9 +201,9 @@ int CheckBlock(int row, int column, struct aslot f[9][9])
     int cnt=0;
     int i, j;
     
-    if(f[row][column].fixed != 0 ) return(f[row][i].fixed);
+   if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
 #ifdef DEBUG_PRINT
-    printf("%s\ %d-%d\t", __FUNCTION__, row, column);
+    printf("%s %d-%d\t", __FUNCTION__, row, column);
 #endif
     
     targetBlock = map[row][column];
@@ -237,27 +237,34 @@ int CheckBlock(int row, int column, struct aslot f[9][9])
 #ifdef DEBUG_PRINT
         printf("%d", f[row][column].numList[i]);
 #endif
-        if(cnt > 1 ) f[row][column].fixed = 0;
     }
 #ifdef DEBUG_PRINT
     printf("\n");
 #endif
+    if(cnt > 1) f[row][column].fixed = 0;
+    
+    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
     return(f[row][i].fixed);
 }
 
-void checkWholeTable(struct aslot f[9][9])
+int checkWholeTable(struct aslot f[9][9])
 {
     int i, j;
+    int result = 1; // success
     
     for(i=0; i<9; i++)
     {
         for(j=0; j<9; j++)
         {
-            CheckHorizontal(i, j, f);
-            CheckVertical(i,j, f);
-            CheckBlock(i,j, f);
+            result = CheckHorizontal(i, j, f);
+            if (result < 0) return (-1);
+            result = CheckVertical(i,j, f);
+            if (result < 0) return (-1);
+            result = CheckBlock(i,j, f);
+            if (result < 0) return (-1);
         }
     }
+    return(1);
 }
 
 // look at the number of candidates in each slot
@@ -288,10 +295,39 @@ int numOfList(int row, int column, struct aslot f[9][9])
     }
     return(cnt);
 }
+
+void printNumOfList(struct aslot f[9][9])
+{
+    int i, j;
+    printf("%s\n", __FUNCTION__);
+    for(i=0; i<9; i++)
+    {
+        for(j=0; j<9; j++)
+        {
+            printf("%d ", numOfList(i,j,f));
+        }
+        printf("\n");
+    }
+}
+int IsComplete(struct aslot f[9][9])
+{
+    int i, j;
+    int result = 0;
+    
+    printf("%s\n", __FUNCTION__);
+    for(i=0; i<9; i++)
+    {
+        for(j=0; j<9; j++)
+        {
+            if (f[i][j].fixed == 0 ) result++;
+        }
+    }
+    return (result);
+}
+
 #include <stdio.h>
 
 int main(int argc, const char * argv[]) {
-    int sudokuForm[9][9];
     struct aslot form[9][9];
     
     // insert code here...
@@ -341,16 +377,18 @@ int main(int argc, const char * argv[]) {
     form[8][7].fixed = 8;
     
     // TRY
-    form[0][2].fixed = 1;
-    form[1][1].fixed = 4;
-    form[0][6].fixed = 5;
+    //form[0][2].fixed = 1;
+    //form[0][4].fixed = 4;
+    //form[0][0].fixed = 9;
+    //form[1][1].fixed = 4;
+    //form[1][3].fixed = 1;
     
+    printf("checkWholeTable = %d\n", checkWholeTable(form));
     printSufokuForm2(form);
+    printNumOfList(form);
+    printf("Is complete %d\n", IsComplete(form));
     
-    checkWholeTable(form);
-    printSufokuForm2(form);
-    
-#if 1
+#if 0
     int i, j, loop, cnt;
 
     for (loop = 0; loop < 20; loop++)
@@ -366,6 +404,7 @@ int main(int argc, const char * argv[]) {
                     form[i][j].fixed = form[i][j].try;
                     checkWholeTable(form);
                     printSufokuForm2(form);
+                    printNumOfList(form);
                     break;
                 }
             }
@@ -375,16 +414,7 @@ int main(int argc, const char * argv[]) {
     }
 #endif
     
-    //int i, j;
-    printf("---- map check ----\n");
-    for(i=0; i<9; i++)
-    {
-        for(j=0; j<9; j++)
-        {
-            printf("%d ", numOfList(i,j,form));
-        }
-        printf("\n");
-    }
+
     
     return 0;
 }
