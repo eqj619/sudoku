@@ -5,51 +5,25 @@
 //  Created by EIJI OGA on 12/9/19.
 //  Copyright © 2019 Eiji Oga. All rights reserved.
 //
-//#udefine DEBUG_PRINT
+#define DEBUG_PRINT
+
+#include <stdio.h>
 
 struct aslot
 {
-    int fixed;
+    int fixed;      // 0 ... not find yet.
     int try1;
     int try2;
-    int numList[9];
+    int numList[9]; // candidate numbers
 };
-
-void initSudokuForm(int pForm[9][9])
-{
-    int i, j;
-    
-    printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++)
-    {
-        for (j=0; j<9; j++) pForm[i][j] = 0;
-    }
-}
-
-void printSudokuForm(int pForm[9][9])
-{
-    int i, j;
-    
-     printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++)
-    {
-        for (j=0; j<9; j++)
-        {
-            printf("%d ", pForm[i][j]);
-        }
-        printf("\n");
-    }
-}
 
 void initSudokuForm2(struct aslot f[9][9])
 {
     int i, j, k;
     
     printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++)
-    {
-        for (j=0; j<9; j++)
-        {
+    for(i=0; i<9; i++){
+        for (j=0; j<9; j++){
             f[i][j].fixed = 0;
             f[i][j].try1 = 0;
             f[i][j].try2 = 0;
@@ -58,15 +32,13 @@ void initSudokuForm2(struct aslot f[9][9])
     }
 }
 
-void printSufokuForm2(struct aslot f[9][9])
+void printSudokuForm2(struct aslot f[9][9])
 {
     int i, j;
     
     printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++)
-    {
-        for (j=0; j<9; j++)
-        {
+    for(i=0; i<9; i++){
+        for (j=0; j<9; j++){
             if(f[i][j].fixed != 0) printf("%d ", f[i][j].fixed);
             else printf("_ ");
         }
@@ -74,25 +46,6 @@ void printSufokuForm2(struct aslot f[9][9])
     }
     
 }
-
-#if 0
-void printSufokuForm2try(struct aslot f[9][9])
-{
-    int i, j;
-    
-    printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++)
-    {
-        for (j=0; j<9; j++)
-        {
-            if (f[i][j].try != 0) printf("%d ", f[i][j].try);
-            else printf("_ ");
-        }
-        printf("\n");
-    }
-    
-}
-#endif
 
 int VerifyNumber(int row, int column, struct aslot f[9][9])
 {
@@ -104,7 +57,12 @@ int VerifyNumber(int row, int column, struct aslot f[9][9])
 #endif
     
     // it's alreay fixed number
-    if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
+    if(f[row][column].fixed != 0 ){
+#ifdef DEBUG_PRINT
+        printf("\n");
+#endif
+        return(f[row][column].fixed);
+    }
     
     // Check at Horizontal Line
     for(i=0; i<9; i++){
@@ -178,187 +136,14 @@ int VerifyNumber(int row, int column, struct aslot f[9][9])
     return(f[row][i].fixed);
 }
 
-//
-// check at horizontal line then fix the number when candidate is only one.
-//
-int CheckHorizontal(int row, int column, struct aslot f[9][9])
-{
-    int i;
-    int cnt=0;
-    
-    if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
-#ifdef DEBUG_PRINT
-     printf("%s %d-%d\t", __FUNCTION__, row, column);
-#endif
-    
-    // check num in a line
-    for(i=0; i<9; i++)
-    {
-        if(i != column)
-        {
-            if(f[row][i].fixed != 0)    // exit this number. then, drop this number from list
-            {
-                f[row][column].numList[ f[row][i].fixed - 1] = 0;
-            }
-        }
-    }
-    // check how many candidate in numList
-    for(i=0; i<9; i++)
-    {
-        if( f[row][column].numList[i] != 0 ) {
-            cnt++;
-            f[row][column].fixed = f[row][column].numList[i];
-        }
-#ifdef DEBUG_PRINT
-        printf("%d", f[row][column].numList[i]);
-#endif
-    }
-#ifdef DEBUG_PRINT
-    printf("\n");
-#endif
-    // cnt = 0 ... ERROR cannot find a number. all number are already there.
-    // cnt = 1 ... find a number
-    // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
-    if(cnt > 1) f[row][column].fixed = 0;
-    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
-    return(f[row][i].fixed);
-}
-
-//
-// check at Vertical line then fix the number when candidate is only one.
-//
-int CheckVertical(int row, int column, struct aslot f[9][9])
-{
-    int i;
-    int cnt=0;
-
-    if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
-#ifdef DEBUG_PRINT
-     printf("%s %d-%d\t", __FUNCTION__, row, column);
-#endif
-     
-    
-    // check num in a line
-    for(i=0; i<9; i++)
-    {
-        if(i != row)
-        {
-            if(f[i][column].fixed != 0)    // exit this number. then, drop this number from list
-            {
-                f[row][column].numList[ f[i][column].fixed - 1] = 0;
-            }
-        }
-    }
-    // check how many candidate in numList
-    for(i=0; i<9; i++)
-    {
-        if( f[row][column].numList[i] != 0 ) {
-            cnt++;
-            f[row][column].fixed = f[row][column].numList[i];
-        }
-#ifdef DEBUG_PRINT
-        printf("%d", f[row][column].numList[i]);
-#endif
-    }
-#ifdef DEBUG_PRINT
-    printf("\n");
-#endif
-    // cnt = 0 ... ERROR cannot find a number. all number are already there.
-    // cnt = 1 ... find a number
-    // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
-    if(cnt > 1) f[row][column].fixed = 0;
-    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
-    return(f[row][i].fixed);
-}
-
-//
-// check at block then fix the number when candidate is only one.
-//
-int CheckBlock(int row, int column, struct aslot f[9][9])
-{
-    const int map[9][9] = {
-        {0,0,0,1,1,1,2,2,2},
-        {0,0,0,1,1,1,2,2,2},
-        {0,0,0,1,1,1,2,2,2},
-        {3,3,3,4,4,4,5,5,5},
-        {3,3,3,4,4,4,5,5,5},
-        {3,3,3,4,4,4,5,5,5},
-        {6,6,6,7,7,7,8,8,8},
-        {6,6,6,7,7,7,8,8,8},
-        {6,6,6,7,7,7,8,8,8}
-    };
-    
-    int targetBlock;
-    int checkCnt = 8;
-    int cnt=0;
-    int i, j;
-    
-   if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
-#ifdef DEBUG_PRINT
-    printf("%s %d-%d\t", __FUNCTION__, row, column);
-#endif
-    
-    targetBlock = map[row][column];
-    
-    for(i=0; i<9; i++)
-    {
-        for(j=0; j<9; j++)
-        {
-            if(map[i][j] == targetBlock)
-            {
-                if(i != row && j != column)
-                {
-                    if(f[i][j].fixed != 0)    // exit this number. then, drop this number from list
-                    {
-                        f[row][column].numList[ f[i][j].fixed - 1] = 0;
-                    }
-                    checkCnt--;
-                    if (checkCnt == 0) break;
-                }
-            }
-        }
-    }
-    
-    // check how many candidate in numList
-    for(i=0; i<9; i++)
-    {
-        if( f[row][column].numList[i] != 0 ) {
-            cnt++;
-            f[row][column].fixed = f[row][column].numList[i];
-        }
-#ifdef DEBUG_PRINT
-        printf("%d", f[row][column].numList[i]);
-#endif
-    }
-#ifdef DEBUG_PRINT
-    printf("\n");
-#endif
-    // cnt = 0 ... ERROR cannot find a number. all number are already there.
-    // cnt = 1 ... find a number
-    // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
-    if(cnt > 1) f[row][column].fixed = 0;
-    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
-    return(f[row][i].fixed);
-}
-
 int checkWholeTable(struct aslot f[9][9])
 {
     int i, j;
     int result = 1; // success
     
-    for(i=0; i<9; i++)
-    {
-        for(j=0; j<9; j++)
-        {
+    for(i=0; i<9; i++){
+        for(j=0; j<9; j++){
             result = VerifyNumber(i, j, f);
-#if 0
-            result = CheckHorizontal(i, j, f);
-            if (result == -1) return (-1);
-            result = CheckVertical(i,j, f);
-            if (result == -1) return (-1);
-            result = CheckBlock(i,j, f);
-            if (result == -1) return (-1);
-#endif
         }
     }
     return(1);
@@ -375,10 +160,8 @@ int numOfList(int row, int column, struct aslot f[9][9])
     
     if(f[row][column].fixed != 0) return (0);
     
-    for(i=0; i<9; i++)
-    {
-        if(f[row][column].numList[i] != 0)
-        {
+    for(i=0; i<9; i++){
+        if(f[row][column].numList[i] != 0){
             cnt++;
             // if(try == 0) try = f[row][column].numList[i];
             if(cnt==1) try[0] = f[row][column].numList[i];
@@ -398,10 +181,8 @@ void printNumOfList(struct aslot f[9][9])
 {
     int i, j;
     printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++)
-    {
-        for(j=0; j<9; j++)
-        {
+    for(i=0; i<9; i++){
+        for(j=0; j<9; j++){
             printf("%d ", numOfList(i,j,f));
         }
         printf("\n");
@@ -413,10 +194,8 @@ int IsComplete(struct aslot f[9][9])
     int result = 0;
     
     printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++)
-    {
-        for(j=0; j<9; j++)
-        {
+    for(i=0; i<9; i++){
+        for(j=0; j<9; j++){
             if (f[i][j].fixed == 0 ) result++;
         }
     }
@@ -436,7 +215,7 @@ int main(int argc, const char * argv[]) {
     // printSudokuForm(sudokuForm);
 
     initSudokuForm2(form);
-    printSufokuForm2(form);
+    printSudokuForm2(form);
     
     // fill test pattern
     form[0][1].fixed = 3;
@@ -479,6 +258,7 @@ int main(int argc, const char * argv[]) {
     form[0][2].fixed = 9; //19
     form[0][0].fixed = 5; //45
     form[0][3].fixed = 1; //14
+    
     //form[1][6].fixed = 6; //56
     //form[1][8].fixed = 5; //35
     //form[2][6].fixed = 4; //9, 4
@@ -494,7 +274,7 @@ int main(int argc, const char * argv[]) {
         result = checkWholeTable(form);
         printf("checkWholeTable = %d\n", result);
         
-        printSufokuForm2(form);
+        printSudokuForm2(form);
         printNumOfList(form);
         openSlot = IsComplete(form);
         printf("Is complete %d\n", openSlot);
@@ -523,7 +303,7 @@ int main(int argc, const char * argv[]) {
                 if (result != -1)
                 {
                     printf("first challege success\n");
-                    printSufokuForm2(form);
+                    printSudokuForm2(form);
                     printNumOfList(form);
                     printf("Is complete %d\n", IsComplete(form));
                     continue;
@@ -535,7 +315,7 @@ int main(int argc, const char * argv[]) {
                 if (result != -1)
                 {
                     printf("second challege success\n");
-                    printSufokuForm2(form);
+                    printSudokuForm2(form);
                     printNumOfList(form);
                     printf("Is complete %d\n", IsComplete(form));
                     continue;
