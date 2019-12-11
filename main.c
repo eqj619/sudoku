@@ -94,6 +94,90 @@ void printSufokuForm2try(struct aslot f[9][9])
 }
 #endif
 
+int VerifyNumber(int row, int column, struct aslot f[9][9])
+{
+    int i;
+    int cnt;
+    
+#ifdef DEBUG_PRINT
+     printf("%s %d-%d\t", __FUNCTION__, row, column);
+#endif
+    
+    // it's alreay fixed number
+    if(f[row][column].fixed != 0 ) return(f[row][column].fixed);
+    
+    // Check at Horizontal Line
+    for(i=0; i<9; i++){
+        if(i != column){                // skip by itself
+            if(f[row][i].fixed != 0){   // exit this number. then, drop this number from list
+                f[row][column].numList[ f[row][i].fixed - 1] = 0;
+            }
+        }
+    }
+    // Check at Vertical Line
+    for(i=0; i<9; i++){
+        if(i != row){                   // skip by itself
+            if(f[i][column].fixed != 0){    // exit this number. then, drop this number from list
+                f[row][column].numList[ f[i][column].fixed - 1] = 0;
+            }
+        }
+    }
+    // Check Block
+    const int map[9][9] = {
+        {0,0,0,1,1,1,2,2,2},
+        {0,0,0,1,1,1,2,2,2},
+        {0,0,0,1,1,1,2,2,2},
+        {3,3,3,4,4,4,5,5,5},
+        {3,3,3,4,4,4,5,5,5},
+        {3,3,3,4,4,4,5,5,5},
+        {6,6,6,7,7,7,8,8,8},
+        {6,6,6,7,7,7,8,8,8},
+        {6,6,6,7,7,7,8,8,8}
+    };
+    
+    int targetBlock;
+    int checkCnt = 8;
+    int j;
+    
+    targetBlock = map[row][column];
+    
+    for(i=0; i<9; i++){
+        for(j=0; j<9; j++){
+            if(map[i][j] == targetBlock){       // in same block
+                if(i != row && j != column){    // skip by itself
+                    if(f[i][j].fixed != 0){     // exit this number. then, drop this number from list
+                        f[row][column].numList[ f[i][j].fixed - 1] = 0;
+                    }
+                    checkCnt--;
+                    if (checkCnt == 0) break;   // verify all number in a block
+                }
+            }
+        }
+    }
+    
+    // check how many candidate in numList
+    cnt = 0;
+    for(i=0; i<9; i++)
+    {
+        if( f[row][column].numList[i] != 0 ) {
+            cnt++;
+            f[row][column].fixed = f[row][column].numList[i];
+        }
+#ifdef DEBUG_PRINT
+        printf("%d", f[row][column].numList[i]);
+#endif
+    }
+#ifdef DEBUG_PRINT
+    printf("\n");
+#endif
+    // cnt = 0 ... ERROR cannot find a number. all number are already there.
+    // cnt = 1 ... find a number
+    // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
+    if(cnt > 1) f[row][column].fixed = 0;
+    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
+    return(f[row][i].fixed);
+}
+
 //
 // check at horizontal line then fix the number when candidate is only one.
 //
@@ -132,12 +216,11 @@ int CheckHorizontal(int row, int column, struct aslot f[9][9])
 #ifdef DEBUG_PRINT
     printf("\n");
 #endif
+    // cnt = 0 ... ERROR cannot find a number. all number are already there.
+    // cnt = 1 ... find a number
+    // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
     if(cnt > 1) f[row][column].fixed = 0;
-    if(f[row][column].fixed == 0 && cnt == 0)
-    {
-        printf("=== ERROR ===");
-        return (-1);
-    }
+    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
     return(f[row][i].fixed);
 }
 
@@ -180,14 +263,11 @@ int CheckVertical(int row, int column, struct aslot f[9][9])
 #ifdef DEBUG_PRINT
     printf("\n");
 #endif
+    // cnt = 0 ... ERROR cannot find a number. all number are already there.
+    // cnt = 1 ... find a number
+    // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
     if(cnt > 1) f[row][column].fixed = 0;
-    
-    if(f[row][column].fixed == 0 && cnt == 0)
-    {
-        printf("=== ERROR ===");
-        return (-1);
-    }
-
+    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
     return(f[row][i].fixed);
 }
 
@@ -253,14 +333,11 @@ int CheckBlock(int row, int column, struct aslot f[9][9])
 #ifdef DEBUG_PRINT
     printf("\n");
 #endif
+    // cnt = 0 ... ERROR cannot find a number. all number are already there.
+    // cnt = 1 ... find a number
+    // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
     if(cnt > 1) f[row][column].fixed = 0;
-    
-    if(f[row][column].fixed == 0 && cnt == 0)
-    {
-        printf("=== ERROR ===");
-        return (-1);
-    }
-
+    if(f[row][column].fixed == 0 && cnt == 0) return (-1);
     return(f[row][i].fixed);
 }
 
@@ -273,12 +350,15 @@ int checkWholeTable(struct aslot f[9][9])
     {
         for(j=0; j<9; j++)
         {
+            result = VerifyNumber(i, j, f);
+#if 0
             result = CheckHorizontal(i, j, f);
             if (result == -1) return (-1);
             result = CheckVertical(i,j, f);
             if (result == -1) return (-1);
             result = CheckBlock(i,j, f);
             if (result == -1) return (-1);
+#endif
         }
     }
     return(1);
@@ -413,6 +493,7 @@ int main(int argc, const char * argv[]) {
     {
         result = checkWholeTable(form);
         printf("checkWholeTable = %d\n", result);
+        
         printSufokuForm2(form);
         printNumOfList(form);
         openSlot = IsComplete(form);
