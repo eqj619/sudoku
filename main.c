@@ -144,6 +144,7 @@ int checkWholeTable(struct aslot f[9][9])
     for(i=0; i<9; i++){
         for(j=0; j<9; j++){
             result = VerifyNumber(i, j, f);
+            if (result == -1) return (-1);
         }
     }
     return(1);
@@ -193,7 +194,7 @@ int IsComplete(struct aslot f[9][9])
     int i, j;
     int result = 0;
     
-    printf("%s\n", __FUNCTION__);
+    //printf("%s\n", __FUNCTION__);
     for(i=0; i<9; i++){
         for(j=0; j<9; j++){
             if (f[i][j].fixed == 0 ) result++;
@@ -217,7 +218,8 @@ int main(int argc, const char * argv[]) {
     initSudokuForm2(form);
     printSudokuForm2(form);
     
-    // fill test pattern
+#ifdef TEST00
+    // fill test pattern 00
     form[0][1].fixed = 3;
     form[0][5].fixed = 7;
     form[0][6].fixed = 2;
@@ -258,13 +260,48 @@ int main(int argc, const char * argv[]) {
     form[0][2].fixed = 9; //19
     form[0][0].fixed = 5; //45
     form[0][3].fixed = 1; //14
+#endif
     
-    //form[1][6].fixed = 6; //56
-    //form[1][8].fixed = 5; //35
-    //form[2][6].fixed = 4; //9, 4
-    //form[3][0].fixed = 5;  //57
-    //form[3][3].fixed = 7;
+    form[0][0].fixed = 7; //56
+    form[0][1].fixed = 5; //35
+    form[1][1].fixed = 3; //9, 4
+    form[1][3].fixed = 4;  //57
+    form[1][7].fixed = 7;
+    form[2][0].fixed = 8; //56
+    form[2][4].fixed = 6; //35
+    form[2][6].fixed = 1; //9, 4
     
+    form[3][1].fixed = 9;  //57
+    form[3][5].fixed = 4;
+    form[3][7].fixed = 6; //56
+    form[4][2].fixed = 5; //35
+    form[4][3].fixed = 3; //9, 4
+    form[4][7].fixed = 1;  //57
+    form[5][2].fixed = 2;
+    form[5][4].fixed = 9; //56
+    form[5][8].fixed = 7; //35
+    
+    form[6][2].fixed = 4; //9, 4
+    form[6][3].fixed = 9;  //57
+    form[6][8].fixed = 2;
+    form[7][0].fixed = 9; //9, 4
+     form[7][5].fixed = 8;  //57
+     form[7][6].fixed = 6;
+    form[8][6].fixed = 4; //9, 4
+     form[8][8].fixed = 8;  //57
+    
+     // TRY
+    form[0][2].fixed = 6; //16
+    form[1][4].fixed = 8; //58
+    
+    form[0][3].fixed = 2; //12 HEAD
+    form[0][4].fixed = 1; //13
+    form[0][5].fixed = 3; //39
+        form[0][6].fixed = 9; //89
+        form[2][3].fixed = 5; //57
+  
+    
+    //========================
     int lastNum = 0;
     int openSlot = -1;
     
