@@ -6,8 +6,10 @@
 //  Copyright © 2019 Eiji Oga. All rights reserved.
 //
 #define DEBUG_PRINT
+#define SUDOKU_RESOLVER
 
 #include <stdio.h>
+#include <stdlib.h>
 
 struct aslot
 {
@@ -17,17 +19,25 @@ struct aslot
     int numList[9]; // candidate numbers
 };
 
+struct checkPoint
+{
+    struct checkPoint    *pPrev;     // Null = head
+    int             slotNum;    // 0 to 80
+    int try1;                   // 0 is fail
+    struct checkPoint    *pNextTry1; // next pointer
+    int try2;
+    struct checkPoint    *pNextTry2;
+};
+
 void initSudokuForm2(struct aslot f[9][9])
 {
-    int i, j, k;
+    const struct aslot aslotInit = {0, 0, 0, {1,2,3,4,5,6,7,8,9}};
+    int i, j;
     
     printf("%s\n", __FUNCTION__);
     for(i=0; i<9; i++){
         for (j=0; j<9; j++){
-            f[i][j].fixed = 0;
-            f[i][j].try1 = 0;
-            f[i][j].try2 = 0;
-            for(k=0; k<9; k++) f[i][j].numList[k] = k+1;
+            f[i][j] = aslotInit;
         }
     }
 }
@@ -133,7 +143,7 @@ int VerifyNumber(int row, int column, struct aslot f[9][9])
     // cnt > 1 ... cannot fix because of 2 and more candidate remain. then, reset fixed value.
     if(cnt > 1) f[row][column].fixed = 0;
     if(f[row][column].fixed == 0 && cnt == 0) return (-1);
-    return(f[row][i].fixed);
+    return(f[row][column].fixed);
 }
 
 int checkWholeTable(struct aslot f[9][9])
@@ -202,12 +212,45 @@ int IsComplete(struct aslot f[9][9])
     }
     return (result);
 }
+void fillSlot(int pSudoku[], struct aslot f[9][9])
+{
+    int i;
+    
+    for (i=0; i< (9*9); i++){
+        f[i/9][i%9].fixed = pSudoku[i];
+    }
+}
 
-#include <stdio.h>
+// check then fill the number in resolved slot
+int sudokuChecker(struct aslot f[9][9])
+{
+    static int lastNum = 0;
+    int openSlot = -1;
+    int result = 0;
+    
+    while(result != -1)
+    {
+        result = checkWholeTable(f);
+        printf("checkWholeTable = %d\n", result);
+        
+        printSudokuForm2(f);
+        printNumOfList(f);
+        openSlot = IsComplete(f);
+        printf("Is complete %d\n", openSlot);
+        if (openSlot == lastNum) break;
+        else lastNum = openSlot;
+    }
+    
+    return (result);
+}
+
+
 
 int main(int argc, const char * argv[]) {
     struct aslot form[9][9];
     int result;
+    struct checkPoint topCP = {NULL, -1, 0, NULL, 0, NULL};
+    struct checkPoint *pHead = NULL;
     
     // insert code here...
     printf("Hello, World!\n");
@@ -217,6 +260,38 @@ int main(int argc, const char * argv[]) {
 
     initSudokuForm2(form);
     printSudokuForm2(form);
+
+    int test02[] = {
+        1,5,7,6,4,0,0,9,8,
+        2,0,9,0,0,0,0,0,0,
+        0,0,0,9,1,0,0,0,4,
+        
+        8,0,0,4,3,0,0,5,0,
+        0,0,0,0,0,0,0,0,0,
+        0,2,0,0,6,8,0,0,7,
+        
+        7,0,0,0,8,6,0,0,0,
+        0,0,0,0,0,0,0,0,1,
+        0,9,0,0,0,4,8,6,2
+    };
+    
+#if 0
+    int test02[] = {
+        1,5,7,6,4,2,0,9,8,
+        2,0,9,0,5,3,0,0,0,
+        0,0,0,9,1,0,0,0,4,
+        
+        8,0,0,4,3,0,0,5,0,
+        0,0,0,0,0,0,0,0,0,
+        0,2,0,0,6,8,0,0,7,
+        
+        7,0,0,0,8,6,0,0,0,
+        0,0,0,0,0,0,0,0,1,
+        0,9,0,0,0,4,8,6,2
+    };
+#endif
+    
+    fillSlot (test02, form);
     
 #ifdef TEST00
     // fill test pattern 00
@@ -261,7 +336,8 @@ int main(int argc, const char * argv[]) {
     form[0][0].fixed = 5; //45
     form[0][3].fixed = 1; //14
 #endif
-    
+
+#ifdef TEST02
     form[0][0].fixed = 7; //56
     form[0][1].fixed = 5; //35
     form[1][1].fixed = 3; //9, 4
@@ -299,72 +375,84 @@ int main(int argc, const char * argv[]) {
     form[0][5].fixed = 3; //39
         form[0][6].fixed = 9; //89
         form[2][3].fixed = 5; //57
-  
+#endif
     
     //========================
-    int lastNum = 0;
-    int openSlot = -1;
+    sudokuChecker(form);
     
-    result = 0;
-    while(result != -1)
-    {
-        result = checkWholeTable(form);
-        printf("checkWholeTable = %d\n", result);
-        
-        printSudokuForm2(form);
-        printNumOfList(form);
-        openSlot = IsComplete(form);
-        printf("Is complete %d\n", openSlot);
-        if (openSlot == lastNum) break;
-        else lastNum = openSlot;
+#ifdef SUDOKU_RESOLVER
+    int i, loop;
+    
+    if(topCP.slotNum == -1){        // initial loop
+        pHead = &topCP;
     }
     
-    
-#if 0
-    int i, j, loop, cnt;
-
     loop = 0;
-    printf("---- LOOP %d ----\n", loop++);
-    for(i=0; i<9; i++)
+    while(loop < 3)
     {
-        for(j=0; j<9; j++)
-        {
-            cnt = numOfList(i,j,form);
-            if (cnt == 2)
+        loop++;
+        printf("===== LOOP %d ============================\n", loop);
+        
+        // find 2 candidates slot
+        for (i=0; i < (9*9); i++){
+            if ( numOfList(i/9, i%9, form) == 2)
             {
-                printf("======== Count 2 challenge %d,%d\n", i, j);
-                //first trial
-                printf("============ first try %d\n",form[i][j].try1 );
-                form[i][j].fixed = form[i][j].try1;
-                result = checkWholeTable(form);
-                if (result != -1)
-                {
-                    printf("first challege success\n");
-                    printSudokuForm2(form);
-                    printNumOfList(form);
-                    printf("Is complete %d\n", IsComplete(form));
-                    continue;
-                }
-                // second trial
-                printf("============ second try %d\n",form[i][j].try2 );
-                form[i][j].fixed = form[i][j].try2;
-                result = checkWholeTable(form);
-                if (result != -1)
-                {
-                    printf("second challege success\n");
-                    printSudokuForm2(form);
-                    printNumOfList(form);
-                    printf("Is complete %d\n", IsComplete(form));
-                    continue;
-                }
-                
-                printf("second trail FAILD\n");
-                form[i][j].fixed = 0;
+                pHead->slotNum = i;
+                pHead->try1 = form[i/9][i%9].try1;
+                pHead->try2 = form[i/9][i%9].try2;
+                break;
             }
         }
-        printf("\n");
-    }
-    //printSufokuForm2try(form);
+        printf("pHead pPrev 0x%08x, slotNum %d(%d-%d), try1 %d, try1 ptr 0x%08x, try2 %d, try2 ptr 0x%08x\n",
+               pHead->pPrev, pHead->slotNum, pHead->slotNum/9,pHead->slotNum%9, pHead->try1, pHead->pNextTry1, pHead->try2, pHead->pNextTry2 );
+        
+        // Try candidate
+        if (pHead->try1 != 0 && pHead->pNextTry1 == NULL){
+            form[pHead->slotNum/9][pHead->slotNum%9].fixed = pHead->try1;
+        }
+        
+        // check
+        result = sudokuChecker(form);
+        
+        if (result == 1)
+        {
+            // if result is good. add next slot, link then move a head pointer
+            // addCheckPoint(struct checkPoint *pCP);
+            
+            pHead->pNextTry1 = malloc(sizeof(struct checkPoint));
+            pHead->pNextTry1->pPrev = pHead;
+            pHead->pNextTry1->slotNum = -1;
+            pHead->pNextTry1->try1 = 0;
+            pHead->pNextTry1->pNextTry1 = NULL;
+            pHead->pNextTry1->try2 = 0;
+            pHead->pNextTry1->pNextTry2 = NULL;
+
+            // switch head pointer to next
+            pHead = pHead->pNextTry1;
+        }
+        else
+        {
+            // if result is failed, delete try1 then try 2nd number
+            if (result == -1){
+                if (pHead->try2 != 0 && pHead->pNextTry2 == NULL){
+                    form[pHead->slotNum/9][pHead->slotNum%9].fixed = pHead->try2;
+                }
+            }
+            // check
+            result = sudokuChecker(form);
+            
+            
+            if (result == 1){
+                // addCheckPoint
+            }
+            else{
+                // both number is failed, rollback head pointer
+                
+            }
+        }
+    } // while(loop)
+    
+    
 #endif
     
 
