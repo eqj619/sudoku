@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+const int SUDOKU_SIZE = 9;
+
 struct aslot
 {
     int fixed;      // 0 ... not find yet.
@@ -26,20 +28,20 @@ struct checkPoint
 {
     struct checkPoint   *pPrev;     // Null = head
     int                 slotNum;    // 0 to 80
-    int                 capMap[9*9];
+    int                 capMap[SUDOKU_SIZE*SUDOKU_SIZE];
     int                 try1;       // 0 is fail
     struct checkPoint   *pNextTry1; // next pointer
     int                 try2;
     struct checkPoint   *pNextTry2;
 };
 
-void initSudokuForm2(struct aslot f[9][9])
+void initSudokuForm2(struct aslot f[SUDOKU_SIZE][SUDOKU_SIZE])
 {
     int i, j;
     
     printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++){
-        for (j=0; j<9; j++){
+    for(i=0; i<SUDOKU_SIZE; i++){
+        for (j=0; j<SUDOKU_SIZE; j++){
             f[i][j] = aslotInit;
         }
     }
@@ -50,8 +52,8 @@ void printSudokuForm2(struct aslot f[9][9])
     int i, j;
     
     printf("%s\n", __FUNCTION__);
-    for(i=0; i<9; i++){
-        for (j=0; j<9; j++){
+    for(i=0; i<SUDOKU_SIZE; i++){
+        for (j=0; j<SUDOKU_SIZE; j++){
             if(f[i][j].fixed != 0) printf("%d ", f[i][j].fixed);
             else printf("_ ");
         }
@@ -60,25 +62,18 @@ void printSudokuForm2(struct aslot f[9][9])
     
 }
 
-int VerifyNumber(int row, int column, struct aslot f[9][9])
+int VerifyNumber(int row, int column, struct aslot f[SUDOKU_SIZE][SUDOKU_SIZE])
 {
     int i;
     int cnt;
     
-#ifdef DEBUG_PRINT1
-     printf("%s %d-%d\t", __FUNCTION__, row, column);
-#endif
-    
     // it's alreay fixed number
     if(f[row][column].fixed != 0 ){
-#ifdef DEBUG_PRINT1
-        printf("\n");
-#endif
         return(f[row][column].fixed);
     }
     
     // Check at Horizontal Line
-    for(i=0; i<9; i++){
+    for(i=0; i<SUDOKU_SIZE; i++){
         if(i != column){                // skip by itself
             if(f[row][i].fixed != 0){   // exit this number. then, drop this number from list
                 f[row][column].numList[ f[row][i].fixed - 1] = 0;
@@ -86,7 +81,7 @@ int VerifyNumber(int row, int column, struct aslot f[9][9])
         }
     }
     // Check at Vertical Line
-    for(i=0; i<9; i++){
+    for(i=0; i<SUDOKU_SIZE; i++){
         if(i != row){                   // skip by itself
             if(f[i][column].fixed != 0){    // exit this number. then, drop this number from list
                 f[row][column].numList[ f[i][column].fixed - 1] = 0;
@@ -112,8 +107,8 @@ int VerifyNumber(int row, int column, struct aslot f[9][9])
     
     targetBlock = map[row][column];
     
-    for(i=0; i<9; i++){
-        for(j=0; j<9; j++){
+    for(i=0; i<SUDOKU_SIZE; i++){
+        for(j=0; j<SUDOKU_SIZE; j++){
             if(map[i][j] == targetBlock){       // in same block
                 if(i != row && j != column){    // skip by itself
                     if(f[i][j].fixed != 0){     // exit this number. then, drop this number from list
@@ -128,7 +123,7 @@ int VerifyNumber(int row, int column, struct aslot f[9][9])
     
     // check how many candidate in numList
     cnt = 0;
-    for(i=0; i<9; i++)
+    for(i=0; i<SUDOKU_SIZE; i++)
     {
         if( f[row][column].numList[i] != 0 ) {
             cnt++;
@@ -149,13 +144,13 @@ int VerifyNumber(int row, int column, struct aslot f[9][9])
     return(f[row][column].fixed);
 }
 
-int checkWholeTable(struct aslot f[9][9])
+int checkWholeTable(struct aslot f[SUDOKU_SIZE][SUDOKU_SIZE])
 {
     int i, j;
     int result = 1; // success
     
-    for(i=0; i<9; i++){
-        for(j=0; j<9; j++){
+    for(i=0; i<SUDOKU_SIZE; i++){
+        for(j=0; j<SUDOKU_SIZE; j++){
             result = VerifyNumber(i, j, f);
             if (result == -1) return (-1);
         }
@@ -166,7 +161,7 @@ int checkWholeTable(struct aslot f[9][9])
 // look at the number of candidates in each slot
 // then, return one of trial number when candiadtes numbers is list on 2.
 //
-int numOfList(int row, int column, struct aslot f[9][9])
+int numOfList(int row, int column, struct aslot f[SUDOKU_SIZE][SUDOKU_SIZE])
 {
     int i;
     int cnt = 0;
@@ -191,6 +186,7 @@ int numOfList(int row, int column, struct aslot f[9][9])
     return(cnt);
 }
 
+// Debug purpose
 void printNumOfList(struct aslot f[9][9])
 {
     int i, j;
@@ -204,7 +200,8 @@ void printNumOfList(struct aslot f[9][9])
 }
 
 // count the number of none-resolved slot
-int IsComplete(struct aslot f[9][9])
+// when result is ZERO, that's mean resolved all.
+int NumOfNoneResolvedSlot(struct aslot f[9][9])
 {
     int i, j;
     int result = 0;
@@ -218,7 +215,7 @@ int IsComplete(struct aslot f[9][9])
     return (result);
 }
 
-void fillSlot(int pSudoku[], struct aslot f[9][9])
+void fillNumMap(int pSudoku[], struct aslot f[9][9])
 {
     int i;
     
@@ -227,42 +224,49 @@ void fillSlot(int pSudoku[], struct aslot f[9][9])
     }
 }
 
-void captureNumMap(int *pNm, struct aslot f[9][9])
+// Capture the snapshot of intrim Sudoku Form
+// Intrim captured form is used when rollback then try another candidate number.
+void captureNumMap(int *pNm, struct aslot f[SUDOKU_SIZE][SUDOKU_SIZE])
 {
     int i;
     
-    printf(">>>> %s\n", __FUNCTION__);
-    for(i=0; i<9*9; i++)
+    // printf(">>>> %s\n", __FUNCTION__);
+    for(i=0; i<SUDOKU_SIZE*SUDOKU_SIZE; i++)
     {
-        pNm[i] = f[i/9][i%9].fixed;
+        pNm[i] = f[i/SUDOKU_SIZE][i%SUDOKU_SIZE].fixed;
     }
 }
 
-void restoreNumMap(int *pNm, struct aslot f[9][9])
+// Restore the captured intrim numbers to resume trial when rollback.
+void restoreNumMap(int *pNm, struct aslot f[SUDOKU_SIZE][SUDOKU_SIZE])
 {
     int i;
-    printf(">>>> %s\n", __FUNCTION__);
+    // printf(">>>> %s\n", __FUNCTION__);
     
-    for(i=0; i<9*9; i++)
+    for(i=0; i<SUDOKU_SIZE*SUDOKU_SIZE; i++)
     {
-        if(pNm[i] == 0 && f[i/9][i%9].fixed != 0)
+        if(pNm[i] == 0 && f[i/SUDOKU_SIZE][i%SUDOKU_SIZE].fixed != 0)
         {
-            f[i/9][i%9] = aslotInit;
+            f[i/SUDOKU_SIZE][i%SUDOKU_SIZE] = aslotInit;
         }
-        else if(f[i/9][i%9].fixed == 0)
+        else if(f[i/SUDOKU_SIZE][i%SUDOKU_SIZE].fixed == 0)
         {   // clean up numList for next verification
             int j;
-            for(j=0; j<9; j++) f[i/9][i%9].numList[j] = j+1;
+            for(j=0; j<SUDOKU_SIZE; j++) f[i/SUDOKU_SIZE][i%SUDOKU_SIZE].numList[j] = j+1;
         }
-        else if(pNm[i] != f[i/9][i%9].fixed)
+        else if(pNm[i] != f[i/SUDOKU_SIZE][i%SUDOKU_SIZE].fixed)
         {
-            printf("ERROR %s: pNm[%d]=%d, f[%d][%d]=%d\n", __FUNCTION__, i, pNm[i], i/9, i%9, f[i/9][i%9].fixed);
+            // asert
+            printf("ERROR %s: pNm[%d]=%d, f[%d][%d]=%d\n", __FUNCTION__, i, pNm[i], i/SUDOKU_SIZE, i%SUDOKU_SIZE, f[i/SUDOKU_SIZE][i%SUDOKU_SIZE].fixed);
         }
     }
-
 }
 // Check then fill the number in resolved slot
-int sudokuChecker(struct aslot f[9][9])
+// return value
+//  -1 ... Sudoku Numbering Failure. need try another candidate number.
+//  0 ... complete
+//  1-81 ... the number of unresolved slot
+int sudokuChecker(struct aslot f[SUDOKU_SIZE][SUDOKU_SIZE])
 {
     static int lastNum = 0;
     int openSlot = -1;
@@ -275,13 +279,14 @@ int sudokuChecker(struct aslot f[9][9])
         
         printSudokuForm2(f);
         printNumOfList(f);
-        openSlot = IsComplete(f);
+        openSlot = NumOfNoneResolvedSlot(f);
         printf("Is complete %d\n", openSlot);
         if (openSlot == lastNum) break;
         else lastNum = openSlot;
     }
     
-    return (result);
+    if (result == -1) return (result);
+    return (openSlot);
 }
 
 struct checkPoint *addCheckPoint(struct checkPoint *pCP, int flag)
@@ -308,7 +313,7 @@ struct checkPoint *addCheckPoint(struct checkPoint *pCP, int flag)
 }
 
 int main(int argc, const char * argv[]) {
-    struct aslot form[9][9];
+    struct aslot form[SUDOKU_SIZE][SUDOKU_SIZE];
     
     int result;
     struct checkPoint topCP =
@@ -326,15 +331,9 @@ int main(int argc, const char * argv[]) {
             0, NULL, 0, NULL};
     struct checkPoint *pHead = NULL;
     
-    // insert code here...
-    printf("Hello, World!\n");
-    
-    //initSudokuForm(sudokuForm);
-    // printSudokuForm(sudokuForm);
-
     initSudokuForm2(form);
-    printSudokuForm2(form);
 
+    // Set Sudoku test pattern into aslot struct
 #if 0
     int test02[] = {
         1,5,7,6,4,0,0,9,8,
@@ -349,26 +348,11 @@ int main(int argc, const char * argv[]) {
         0,0,0,0,0,0,0,0,1,
         0,9,0,0,0,4,8,6,2
     };
-    
-
-    int test02[] = {
-        1,5,7,6,4,2,0,9,8,
-        2,0,9,0,5,3,0,0,0,
-        0,0,0,9,1,0,0,0,4,
         
-        8,0,0,4,3,0,0,5,0,
-        0,0,0,0,0,0,0,0,0,
-        0,2,0,0,6,8,0,0,7,
-        
-        7,0,0,0,8,6,0,0,0,
-        0,0,0,0,0,0,0,0,1,
-        0,9,0,0,0,4,8,6,2
-    };
-    
-    fillSlot (test02, form);
+    fillNumMap (test02, form);
 #endif
     
-#ifdef TEST00
+#if 0
     // fill test pattern 00
     form[0][1].fixed = 3;
     form[0][5].fixed = 7;
@@ -412,7 +396,7 @@ int main(int argc, const char * argv[]) {
     //form[0][3].fixed = 1; //14
 #endif
 
-#ifdef TEST02
+#if 1
     form[0][0].fixed = 7; //56
     form[0][1].fixed = 5; //35
     form[1][1].fixed = 3; //9, 4
@@ -442,20 +426,19 @@ int main(int argc, const char * argv[]) {
      form[8][8].fixed = 8;  //57
     
      // TRY
-    form[0][2].fixed = 6; //16
-    form[1][4].fixed = 8; //58
+    //form[0][2].fixed = 6; //16
+    //form[1][4].fixed = 8; //58
     
-    form[0][3].fixed = 2; //12 HEAD
-    form[0][4].fixed = 1; //13
-    form[0][5].fixed = 3; //39
-        form[0][6].fixed = 9; //89
-        form[2][3].fixed = 5; //57
+    //form[0][3].fixed = 2; //12 HEAD
+    //form[0][4].fixed = 1; //13
+    //form[0][5].fixed = 3; //39
+    //    form[0][6].fixed = 9; //89
+    //    form[2][3].fixed = 5; //57
 #endif
     
     //========================
     sudokuChecker(form);
     
-#ifdef SUDOKU_RESOLVER
     int i, loop, flag = 3;
     
     if(topCP.slotNum == -1){        // initial loop
@@ -464,7 +447,7 @@ int main(int argc, const char * argv[]) {
     captureNumMap(pHead->capMap, form);
     
     loop = 0;
-    while(loop < 20)
+    while(NumOfNoneResolvedSlot(form) != 0)
     {
         loop++;
         printf("===== LOOP %d ============================\n", loop);
@@ -474,12 +457,12 @@ int main(int argc, const char * argv[]) {
         if(pHead->try1 == 0 && pHead->try2 == 0)
         {
             captureNumMap(pHead->capMap, form);
-            for (i=0; i < (9*9); i++){
-                if ( numOfList(i/9, i%9, form) == 2)
+            for (i=0; i < (SUDOKU_SIZE*SUDOKU_SIZE); i++){
+                if ( numOfList(i/SUDOKU_SIZE, i%SUDOKU_SIZE, form) == 2)
                 {
                     pHead->slotNum = i;
-                    pHead->try1 = form[i/9][i%9].try1;
-                    pHead->try2 = form[i/9][i%9].try2;
+                    pHead->try1 = form[i/SUDOKU_SIZE][i%SUDOKU_SIZE].try1;
+                    pHead->try2 = form[i/SUDOKU_SIZE][i%SUDOKU_SIZE].try2;
                     break;
                 }
             }
@@ -488,31 +471,33 @@ int main(int argc, const char * argv[]) {
                pHead->pPrev, pHead->slotNum, pHead->slotNum/9,pHead->slotNum%9, pHead->try1, pHead->pNextTry1, pHead->try2, pHead->pNextTry2 );
         
         // Before try to fill-in number re-store captured numbers
+        // to verify Sudoku form using refresh candidate lists
         restoreNumMap(pHead->capMap, form);
+        
         // Try candidate
         if (pHead->try1 > 0 && pHead->pNextTry1 == NULL){
-            form[pHead->slotNum/9][pHead->slotNum%9].fixed = pHead->try1;
-            pHead->try1 = -1;
+            form[pHead->slotNum/SUDOKU_SIZE][pHead->slotNum%SUDOKU_SIZE].fixed = pHead->try1;
+            pHead->try1 = -1;       // marked for checked candidate.
             flag = 1;
         }
         else if (pHead->try2 > 0 && pHead->pNextTry2 == NULL){
-            form[pHead->slotNum/9][pHead->slotNum%9].fixed = pHead->try2;
-            pHead->try2 = -1;
+            form[pHead->slotNum/SUDOKU_SIZE][pHead->slotNum%SUDOKU_SIZE].fixed = pHead->try2;
+            pHead->try2 = -1;      // marked for checked candidate.
             flag = 2;
         }
         else if (pHead->try1 == -1 && pHead->try2 == -1){
             // roll back previous check point
-            printf("BOTH Trial number are failed... Rollback\n");
-            form[pHead->slotNum/9][pHead->slotNum%9].fixed = 0;
+            printf("BOTH Trial number are failed... Rollback to previous candidate\n");
+            form[pHead->slotNum/SUDOKU_SIZE][pHead->slotNum%SUDOKU_SIZE].fixed = 0;
 
             pHead = pHead->pPrev;
             continue;
         }
         
-        // check
+        // Check Sudoku Numbers
         result = sudokuChecker(form);
         
-        if (result == 1)
+        if (result >= 1)
         {
             struct checkPoint *pTmp;
             // if result is good. add next slot, link then move a head pointer
@@ -524,18 +509,12 @@ int main(int argc, const char * argv[]) {
                 return(-1);
             }
         }
-        else
+        else if (result == -1)
         {
             printf("sudokuChecker FAILED flag = %d\n", flag);
             form[pHead->slotNum/9][pHead->slotNum%9].fixed = 0;
-            // TODO: HAVE TO CLEAN UP fixed value in here.
         }
     } // while(loop)
-    
-    
-#endif
-    
-
     
     return 0;
 }
