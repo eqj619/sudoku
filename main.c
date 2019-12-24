@@ -486,11 +486,16 @@ int main(int argc, const char * argv[]) {
             flag = 2;
         }
         else if (pHead->try1 == -1 && pHead->try2 == -1){
+            void *pTmp;
+            
             // roll back previous check point
             printf("BOTH Trial number are failed... Rollback to previous candidate\n");
             form[pHead->slotNum/SUDOKU_SIZE][pHead->slotNum%SUDOKU_SIZE].fixed = 0;
 
+            pTmp = (void*) pHead;
             pHead = pHead->pPrev;
+            free(pTmp);
+            
             continue;
         }
         
